@@ -3,3 +3,4 @@ dist/
 .superpowers/
 *.PDF
 *.pdf
+!tests/fixtures/ncc-teste-*.pdf

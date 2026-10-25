@@ -1,0 +1,41 @@
+{
+  "name": "rosepecas",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Consolidador de relatórios NCC (PDF para XLSX), 100% no navegador",
+  "homepage": "https://senavs.github.io/rosepecas/",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.1",
+    "gh-pages": "^6.3.0",
+    "happy-dom": "^21.0.4",
+    "pdf-lib": "^1.17.1",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.9"
+  }
+}
