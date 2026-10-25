@@ -115,6 +115,16 @@ describe('with uploaded files', () => {
     expect(vi.mocked(downloadXlsx).mock.calls[0][0]).toHaveLength(2)
   })
 
+  test('export failure shows a message', async () => {
+    vi.mocked(downloadXlsx).mockRejectedValueOnce(new Error('chunk 404'))
+    render(<App />)
+    const user = await upload('a.pdf')
+    await waitFor(() => expect(dataRows()).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: /exportar excel/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível gerar a planilha')
+    expect(screen.getByRole('button', { name: /exportar excel/i })).toBeEnabled()
+  })
+
   test('remove one file and clear all', async () => {
     render(<App />)
     const user = await upload('a.pdf', 'b.pdf')

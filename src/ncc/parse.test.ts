@@ -4,6 +4,17 @@ import type { TextLine } from './types'
 
 const L = (text: string, x = 30): TextLine => ({ text, items: [{ str: text, x }] })
 
+/** Linha de dados com um item por coluna, como o pdf.js costuma devolver. */
+const ROW_COLS = (nf: string, cliente: string, chassi: string, values: string[]): TextLine => {
+  const items = [
+    { str: nf, x: 30 },
+    { str: cliente, x: 110 },
+    { str: chassi, x: 330 },
+    ...values.map((str, i) => ({ str, x: 420 + i * 80 })),
+  ]
+  return { text: items.map((i) => i.str).join(' '), items }
+}
+
 const HEADER: TextLine[] = [
   L('Relatório NCC: ate'),
   L('General Motors do Brasil Ltda 23.10.2026', 200),
@@ -68,6 +79,31 @@ describe('parseNccLines', () => {
     const result = parseNccLines([...HEADER, L(ROW1), L('TOTAL GERAL', 30)])
     expect(result.rows[0].cliente).toBe('CLIENTE TESTE UM')
     expect(result.warnings).toEqual([])
+  })
+
+  test('does not join caps line right of the client column', () => {
+    const result = parseNccLines([
+      ...HEADER,
+      ROW_COLS('000.000.001', 'CLIENTE TESTE UM', 'TESTE000000000001', ['123.456,78', '1.234,56', '18,52', '1.216,04']),
+      L('DEPARTAMENTO COMERCIAL', 400),
+    ])
+    expect(result.rows[0].cliente).toBe('CLIENTE TESTE UM')
+  })
+
+  test('joins wrapped company name with symbols and digits', () => {
+    const { rows } = parseNccLines([
+      ...HEADER,
+      ROW_COLS('000.000.007', 'EMPRESA TESTE', 'TESTE000000000007', ['10.000,00', '100,00', '1,50', '98,50']),
+      L('& CIA 2000 LTDA', 110),
+    ])
+    expect(rows[0].cliente).toBe('EMPRESA TESTE & CIA 2000 LTDA')
+  })
+
+  test('malformed value becomes a warning instead of failing the file', () => {
+    const bad = '000.000.008 CLIENTE TESTE OITO TESTE000000000008 1.23,45 100,00 1,50 98,50'
+    const result = parseNccLines([...HEADER, L(ROW1), L(bad)])
+    expect(result.rows).toHaveLength(1)
+    expect(result.warnings).toEqual([bad])
   })
 
   test('collects rows across pages', () => {

@@ -11,6 +11,7 @@ export default function App() {
   const [files, dispatch] = useReducer(filesReducer, [])
   const [dedupe, setDedupe] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState(false)
 
   const all = useMemo(() => allRows(files), [files])
   const { rows, removed } = useMemo(() => (dedupe ? dedupeRows(all) : { rows: all, removed: 0 }), [all, dedupe])
@@ -26,8 +27,11 @@ export default function App() {
 
   const exportXlsx = async () => {
     setExporting(true)
+    setExportError(false)
     try {
       await downloadXlsx(rows)
+    } catch {
+      setExportError(true)
     } finally {
       setExporting(false)
     }
@@ -57,6 +61,11 @@ export default function App() {
             onExport={exportXlsx}
             onClear={() => dispatch({ type: 'cleared' })}
           />
+          {exportError && (
+            <p role="alert" className="rounded-lg bg-danger-soft px-4 py-2.5 text-sm text-danger">
+              Não foi possível gerar a planilha. Recarregue a página e tente de novo.
+            </p>
+          )}
           {rows.length > 0 ? (
             <RowsTable rows={rows} totals={totals} />
           ) : (
