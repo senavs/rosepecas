@@ -61,3 +61,49 @@ export type Base = {
 
 /** Resultado da leitura de uma planilha: linhas válidas + motivos das ignoradas. */
 export type Leitura<T> = { linhas: T[]; ignorados: string[] }
+
+export type StatusLinha = 'paga' | 'nao_paga'
+
+export type StatusCarro = 'sem_comissao' | 'sem_ncc' | 'ncc_nao_paga' | 'parcial' | 'pago'
+
+/**
+ * planilha = só dados importados; manual = um ajuste decidiu; confirmado = ajuste "pago" e a planilha concorda;
+ * conflito = ajuste "não pago", mas a planilha de pagas confirma o pagamento (a planilha vence).
+ */
+export type Marca = 'planilha' | 'manual' | 'confirmado' | 'conflito'
+
+export type LinhaView = {
+  chave: string
+  ncc: string
+  nf: string
+  cod: string
+  data: string | null
+  chassi: string
+  cliente: string
+  comissaoLiquida: number | null
+  /** false = pagamento sem o PDF da NCC carregado */
+  temPdf: boolean
+  dataPagamento: string | null
+  calculado: StatusLinha
+  exibido: StatusLinha
+  marca: Marca
+  ajuste: Ajuste | null
+}
+
+export type CarroView = {
+  fat: Faturamento
+  linhas: LinhaView[]
+  /** linhas com exibido 'nao_paga' */
+  faltando: LinhaView[]
+  /** a partir do status exibido das linhas */
+  calculado: StatusCarro
+  exibido: StatusCarro
+  marca: Marca
+  ajuste: Ajuste | null
+}
+
+export type MotivoOrfao = 'sem_faturamento' | 'chassi_divergente'
+
+export type OrfaoView = LinhaView & { motivo: MotivoOrfao }
+
+export type Visao = { carros: CarroView[]; orfaos: OrfaoView[] }
