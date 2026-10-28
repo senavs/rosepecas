@@ -4,3 +4,5 @@ dist/
 *.PDF
 *.pdf
 !tests/fixtures/ncc-teste-*.pdf
+*.xlsx
+controle-ncc*.json

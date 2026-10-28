@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Consolidador de relatórios NCC (PDF para XLSX), 100% no navegador",
+  "description": "Controle de NCC pagas e consolidador de relatórios NCC, 100% no navegador",
   "homepage": "https://senavs.github.io/rosepecas/",
   "scripts": {
     "dev": "vite",
