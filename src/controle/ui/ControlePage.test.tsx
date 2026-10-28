@@ -169,26 +169,59 @@ describe('tela principal', () => {
     expect(screen.getByText('777')).toBeInTheDocument()
   })
 
-  test('Marcar como pago no menu da NCC chama ajustar com alvo linha', async () => {
+  test('a tabela tem a coluna Ação por último, com um botão Ajustar por carro', () => {
     render(<ControlePage />)
-    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NCC 808284' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Marcar como pago' }))
-    expect(controle.ajustar).toHaveBeenCalledWith(
-      expect.objectContaining({ alvo: { tipo: 'linha', ncc: '808284', nf: '168707' }, status: 'pago', obs: '' }),
-    )
+    const cabecalhos = screen.getAllByRole('columnheader').map((th) => th.textContent)
+    expect(cabecalhos.at(-1)).toBe('Ação')
+    expect(screen.getAllByRole('button', { name: /^Ajustar NF/ })).toHaveLength(3)
   })
 
-  test('Desfazer ajuste aparece quando há ajuste e chama desfazerAjuste', async () => {
+  test('marcar uma NCC como paga pela janela de ajuste chama ajustar com alvo linha', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NF 168707' }))
+    const janela = within(screen.getByRole('dialog', { name: /ajuste manual/i }))
+    await userEvent.type(janela.getByLabelText(/observação/i), 'conferido no extrato')
+    await userEvent.click(janela.getByRole('button', { name: 'Marcar NCC 808284 como paga' }))
+    expect(controle.ajustar).toHaveBeenCalledWith(
+      expect.objectContaining({ alvo: { tipo: 'linha', ncc: '808284', nf: '168707' }, status: 'pago', obs: 'conferido no extrato' }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  test('marcar o carro como não pago pela janela de ajuste', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NF 2' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Marcar carro como não pago' }))
+    expect(controle.ajustar).toHaveBeenCalledWith(expect.objectContaining({ alvo: { tipo: 'carro', nf: '2' }, status: 'nao_pago' }))
+  })
+
+  test('desfazer ajuste do carro mostra a observação e chama desfazerAjuste', async () => {
     const alvo = { tipo: 'carro' as const, nf: '3' }
     controle = mockControle({
       base: { ...BASE, ajustes: { 'carro:3': { alvo, status: 'pago', em: '2026-10-28T12:00:00.000Z', obs: 'pago em dinheiro' } } },
     })
     render(<ControlePage />)
     expect(screen.getAllByText('manual').length).toBeGreaterThan(0)
-    await userEvent.click(screen.getByRole('button', { name: 'Ajustar carro NF 3' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NF 3' }))
     expect(screen.getByText('“pago em dinheiro”')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Desfazer ajuste' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Desfazer ajuste do carro' }))
     expect(controle.desfazerAjuste).toHaveBeenCalledWith(alvo)
+  })
+
+  test('Esc fecha a janela de ajuste sem ajustar', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NF 168707' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(controle.ajustar).not.toHaveBeenCalled()
+  })
+
+  test('órfão também tem botão Ajustar na coluna Ação', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('tab', { name: /órfãos \(1\)/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NCC 777' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Marcar NCC 777 como paga' }))
+    expect(controle.ajustar).toHaveBeenCalledWith(expect.objectContaining({ alvo: { tipo: 'linha', ncc: '777', nf: '999' }, status: 'pago' }))
   })
 
   test('erro ao salvar mostra alerta e Tentar de novo', async () => {
@@ -199,10 +232,39 @@ describe('tela principal', () => {
     expect(controle.tentarSalvarDeNovo).toHaveBeenCalled()
   })
 
-  test('soltar planilha em Adicionar faturamento chama importarFaturamentoArquivo', async () => {
+  test('a lateral não mostra áreas de upload até o usuário escolher o que adicionar', () => {
     render(<ControlePage />)
+    expect(screen.queryByLabelText(/clique ou solte/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /adicionar dados/i })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /faturamento\s*3 carros/i })).toBeInTheDocument()
+  })
+
+  test('o acordeão recolhe e expande os itens', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: /adicionar dados/i }))
+    expect(screen.queryByRole('button', { name: /faturamento\s*3 carros/i })).not.toBeInTheDocument()
+  })
+
+  test('Faturamento abre a janela com a área de upload e o histórico; soltar chama importarFaturamentoArquivo', async () => {
+    controle = mockControle({
+      base: {
+        ...BASE,
+        importacoes: [{ tipo: 'faturamento', arquivo: 'fat-jan.xlsx', em: '2026-02-01T10:00:00.000Z', novos: 3, atualizados: 0, inalterados: 0, ignorados: 0 }],
+      },
+    })
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: /faturamento\s*3 carros/i }))
+    const janela = within(screen.getByRole('dialog', { name: 'Adicionar faturamento' }))
+    expect(janela.getByText('fat-jan.xlsx')).toBeInTheDocument()
     const f = xlsx('fat-out.xlsx')
-    await userEvent.upload(screen.getByLabelText(/adicionar faturamento/i), f)
+    await userEvent.upload(janela.getByLabelText(/clique ou solte/i), f)
     expect(controle.importarFaturamentoArquivo).toHaveBeenCalledWith(f)
+  })
+
+  test('PDFs de NCC abre a janela que aceita vários arquivos', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: /pdfs de ncc/i }))
+    const input = within(screen.getByRole('dialog', { name: 'Adicionar PDFs de NCC' })).getByLabelText(/clique ou solte/i) as HTMLInputElement
+    expect(input.multiple).toBe(true)
   })
 })

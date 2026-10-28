@@ -16,3 +16,16 @@
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* Abertura de janela: responde a uma ação do usuário, então é o único movimento da tela. */
+@media (prefers-reduced-motion: no-preference) {
+  .modal-in {
+    animation: modal-in 160ms ease-out;
+  }
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}

@@ -5,7 +5,6 @@ import type { Base } from '../types'
 import { useControle, type Controle } from '../useControle'
 import { calcularVisao } from '../view'
 import { AberturaBase } from './AberturaBase'
-import { BarraSalvamento } from './BarraSalvamento'
 import { CarrosTable } from './CarrosTable'
 import { Contadores } from './Contadores'
 import { EnriquecerSidebar } from './EnriquecerSidebar'
@@ -45,7 +44,6 @@ function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
       <EnriquecerSidebar controle={controle} />
       <main className="flex min-w-0 flex-1 flex-col gap-4">
-        <BarraSalvamento state={controle.state} onBaixar={controle.baixar} onTentarDeNovo={controle.tentarSalvarDeNovo} />
         <Contadores contagem={contagem} ativos={filtros.status} onAlternar={alternarStatus} />
         <FiltrosBar
           filtros={filtros}
