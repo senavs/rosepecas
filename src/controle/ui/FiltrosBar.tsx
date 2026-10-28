@@ -10,12 +10,14 @@ type Props = {
   onAba: (a: Aba) => void
   totalCarros: number
   totalOrfaos: number
+  exportando: boolean
+  onExportar: () => void
 }
 
 const CAMPO = 'mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm'
 const ROTULO = 'text-xs font-semibold text-muted'
 
-export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarros, totalOrfaos }: Props) {
+export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarros, totalOrfaos, exportando, onExportar }: Props) {
   const set = (k: keyof Filtros) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...filtros, [k]: e.target.value })
   return (
     <div className="flex flex-col gap-3">
@@ -61,9 +63,19 @@ export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarro
             </button>
           ))}
         </div>
-        <button type="button" onClick={onLimpar} className="rounded-md px-2 py-1 text-sm text-muted hover:bg-paper hover:text-ink">
-          Limpar filtros
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={onLimpar} className="rounded-md px-2 py-1 text-sm text-muted hover:bg-paper hover:text-ink">
+            Limpar filtros
+          </button>
+          <button
+            type="button"
+            onClick={onExportar}
+            disabled={exportando || totalCarros === 0}
+            className="rounded-lg bg-action px-3 py-1.5 text-sm font-semibold text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exportando ? 'Gerando…' : 'Exportar Excel'}
+          </button>
+        </div>
       </div>
     </div>
   )

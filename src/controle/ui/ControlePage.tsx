@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { downloadVisao } from '../exportar'
 import { contarPorStatus, filtrarCarros, FILTROS_VAZIOS, type Filtros } from '../filter'
 import type { Base } from '../types'
 import { useControle, type Controle } from '../useControle'
@@ -18,6 +19,8 @@ const LIMITE_LINHAS = 500
 function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VAZIOS)
   const [aba, setAba] = useState<'carros' | 'orfaos'>('carros')
+  const [exportando, setExportando] = useState(false)
+  const [erroExportar, setErroExportar] = useState(false)
   const visao = useMemo(() => calcularVisao(base), [base])
   const filtrados = useMemo(() => filtrarCarros(visao.carros, filtros), [visao, filtros])
   // Os contadores refletem os demais filtros, mas não o próprio filtro de status.
@@ -25,6 +28,18 @@ function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
 
   const alternarStatus = (s: Filtros['status'][number]) =>
     setFiltros((f) => ({ ...f, status: f.status.includes(s) ? f.status.filter((x) => x !== s) : [...f.status, s] }))
+
+  const exportar = async () => {
+    setExportando(true)
+    setErroExportar(false)
+    try {
+      await downloadVisao(filtrados)
+    } catch {
+      setErroExportar(true)
+    } finally {
+      setExportando(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -40,7 +55,14 @@ function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
           onAba={setAba}
           totalCarros={filtrados.length}
           totalOrfaos={visao.orfaos.length}
+          exportando={exportando}
+          onExportar={exportar}
         />
+        {erroExportar && (
+          <p role="alert" className="rounded-lg bg-danger-soft px-4 py-2.5 text-sm text-danger">
+            Não foi possível gerar a planilha. Tente de novo.
+          </p>
+        )}
         {aba === 'carros' ? (
           <CarrosTable
             carros={filtrados.slice(0, LIMITE_LINHAS)}
