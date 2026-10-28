@@ -1,10 +1,23 @@
 import { normChassi, normDigits, semAcento } from './normalize'
 import type { CarroView, StatusCarro } from './types'
 
-/** Datas em 'aaaa-mm-dd'; campos vazios não restringem. */
-export type Filtros = { status: StatusCarro[]; ncc: string; dataDe: string; dataAte: string; texto: string; conc: string }
+/**
+ * Datas em 'aaaa-mm-dd'; campos vazios não restringem.
+ * `semPdf`: só carros com alguma NCC paga (consta na planilha de pagas) cujo PDF ainda não foi enviado.
+ */
+export type Filtros = {
+  status: StatusCarro[]
+  ncc: string
+  dataDe: string
+  dataAte: string
+  texto: string
+  conc: string
+  semPdf: boolean
+}
 
-export const FILTROS_VAZIOS: Filtros = { status: [], ncc: '', dataDe: '', dataAte: '', texto: '', conc: '' }
+export const FILTROS_VAZIOS: Filtros = { status: [], ncc: '', dataDe: '', dataAte: '', texto: '', conc: '', semPdf: false }
+
+const temPagaSemPdf = (c: CarroView) => c.linhas.some((l) => !l.temPdf)
 
 export function filtrarCarros(carros: CarroView[], f: Filtros): CarroView[] {
   const ncc = normDigits(f.ncc)
@@ -14,6 +27,7 @@ export function filtrarCarros(carros: CarroView[], f: Filtros): CarroView[] {
   const nome = semAcento(f.texto)
   return carros.filter((c) => {
     if (f.status.length && !f.status.includes(c.exibido)) return false
+    if (f.semPdf && !temPagaSemPdf(c)) return false
     if (ncc && !c.linhas.some((l) => l.ncc.includes(ncc))) return false
     if ((f.dataDe || f.dataAte) && !c.fat.data) return false
     if (f.dataDe && c.fat.data! < f.dataDe) return false
@@ -25,6 +39,10 @@ export function filtrarCarros(carros: CarroView[], f: Filtros): CarroView[] {
     }
     return true
   })
+}
+
+export function contarSemPdf(carros: CarroView[]): number {
+  return carros.filter(temPagaSemPdf).length
 }
 
 export function contarPorStatus(carros: CarroView[]): Record<StatusCarro, number> {

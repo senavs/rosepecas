@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest'
-import { contarPorStatus, filtrarCarros, FILTROS_VAZIOS, type Filtros } from './filter'
+import { contarPorStatus, contarSemPdf, filtrarCarros, FILTROS_VAZIOS, type Filtros } from './filter'
 import type { CarroView, Faturamento, LinhaView, StatusCarro } from './types'
 
-const linha = (ncc: string, cod: string): LinhaView => ({
-  chave: `${ncc}|1`, ncc, nf: '1', cod, data: null, chassi: '', cliente: '', comissaoLiquida: null, temPdf: true,
+const linha = (ncc: string, cod: string, temPdf = true): LinhaView => ({
+  chave: `${ncc}|1`, ncc, nf: '1', cod, data: null, chassi: '', cliente: '', comissaoLiquida: null, temPdf,
   dataPagamento: null, calculado: 'nao_paga', exibido: 'nao_paga', marca: 'planilha', ajuste: null,
 })
 
@@ -17,7 +17,7 @@ const carro = (nf: string, cliente: string, data: string | null, exibido: Status
 
 const CARROS = [
   carro('168707', 'JOÃO TESTE', '2026-05-04', 'parcial', [linha('808284', 'T48')]),
-  carro('163134', 'MARIA TESTE', '2026-02-10', 'pago'),
+  carro('163134', 'MARIA TESTE', '2026-02-10', 'pago', [linha('805048', 'T28', false)]),
   carro('200001', 'ANA TESTE', null, 'sem_ncc'),
 ]
 
@@ -37,6 +37,11 @@ test('texto encontra chassi e NF', () => {
 })
 test('conc pela linha de NCC', () => expect(filtrar({ conc: 't48' })).toEqual(['168707']))
 test('conc pelo faturamento', () => expect(filtrar({ conc: 'T68' })).toHaveLength(3))
+
+test('pagas sem PDF: só carros com NCC paga cujo PDF não foi enviado', () => {
+  expect(filtrar({ semPdf: true })).toEqual(['163134'])
+  expect(contarSemPdf(CARROS)).toBe(1)
+})
 
 test('contadores trazem todas as chaves', () => {
   expect(contarPorStatus(CARROS)).toEqual({ sem_comissao: 0, sem_ncc: 1, ncc_nao_paga: 0, parcial: 1, pago: 1 })

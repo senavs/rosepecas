@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { downloadVisao } from '../exportar'
-import { contarPorStatus, filtrarCarros, FILTROS_VAZIOS, type Filtros } from '../filter'
+import { contarPorStatus, contarSemPdf, filtrarCarros, FILTROS_VAZIOS, type Filtros } from '../filter'
 import type { Base } from '../types'
 import { useControle, type Controle } from '../useControle'
 import { calcularVisao } from '../view'
@@ -24,6 +24,7 @@ function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
   const filtrados = useMemo(() => filtrarCarros(visao.carros, filtros), [visao, filtros])
   // Os contadores refletem os demais filtros, mas não o próprio filtro de status.
   const contagem = useMemo(() => contarPorStatus(filtrarCarros(visao.carros, { ...filtros, status: [] })), [visao, filtros])
+  const totalSemPdf = useMemo(() => contarSemPdf(filtrarCarros(visao.carros, { ...filtros, semPdf: false })), [visao, filtros])
 
   const alternarStatus = (s: Filtros['status'][number]) =>
     setFiltros((f) => ({ ...f, status: f.status.includes(s) ? f.status.filter((x) => x !== s) : [...f.status, s] }))
@@ -53,6 +54,7 @@ function TelaPrincipal({ controle, base }: { controle: Controle; base: Base }) {
           onAba={setAba}
           totalCarros={filtrados.length}
           totalOrfaos={visao.orfaos.length}
+          totalSemPdf={totalSemPdf}
           exportando={exportando}
           onExportar={exportar}
         />

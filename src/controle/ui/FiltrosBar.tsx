@@ -10,6 +10,7 @@ type Props = {
   onAba: (a: Aba) => void
   totalCarros: number
   totalOrfaos: number
+  totalSemPdf: number
   exportando: boolean
   onExportar: () => void
 }
@@ -17,7 +18,7 @@ type Props = {
 const CAMPO = 'mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm'
 const ROTULO = 'text-xs font-semibold text-muted'
 
-export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarros, totalOrfaos, exportando, onExportar }: Props) {
+export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarros, totalOrfaos, totalSemPdf, exportando, onExportar }: Props) {
   const set = (k: keyof Filtros) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...filtros, [k]: e.target.value })
   return (
     <div className="flex flex-col gap-3">
@@ -43,6 +44,20 @@ export function FiltrosBar({ filtros, onChange, onLimpar, aba, onAba, totalCarro
           <input type="date" value={filtros.dataAte} onChange={set('dataAte')} className={CAMPO} />
         </label>
       </div>
+      <label
+        title="Carros com NCC que consta na planilha de pagas, mas cujo PDF ainda não foi enviado"
+        className={`flex w-fit cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${
+          filtros.semPdf ? 'border-action bg-action-soft' : 'border-line bg-surface hover:border-action/60'
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={filtros.semPdf}
+          onChange={(e) => onChange({ ...filtros, semPdf: e.target.checked })}
+          className="h-4 w-4 accent-action"
+        />
+        Pagas sem PDF da NCC <span className="num text-muted">({totalSemPdf})</span>
+      </label>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div role="tablist" className="flex gap-1 rounded-lg bg-paper p-1">
           {(

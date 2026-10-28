@@ -127,7 +127,7 @@ describe('tela principal', () => {
       '900001|2': linha('900001', '2', 'T68'),
       '777|999': linha('777', '999', 'T08'),
     },
-    pagas: { '808285|168707': paga('808285', '168707', 'T68'), '900001|2': paga('900001', '2', 'T68') },
+    pagas: { '808285|168707': paga('808285', '168707', 'T68'), '900001|2': paga('900001', '2', 'T68'), '805048|2': paga('805048', '2', 'T28') },
   }
   const corpo = () => screen.getAllByRole('row').filter((r) => r.closest('tbody'))
   const contadores = () => within(screen.getByRole('group', { name: /contadores/i }))
@@ -154,6 +154,15 @@ describe('tela principal', () => {
     await userEvent.click(contadores().getByRole('button', { name: /^pago/i }))
     expect(corpo()).toHaveLength(1)
     expect(within(corpo()[0]).getByText(CH('2'))).toBeInTheDocument()
+  })
+
+  test('filtro de pagas sem PDF da NCC mostra só os carros com pagamento cujo PDF não foi enviado', async () => {
+    render(<ControlePage />)
+    const caixa = screen.getByRole('checkbox', { name: /pagas sem pdf da ncc \(1\)/i })
+    await userEvent.click(caixa)
+    expect(corpo()).toHaveLength(1)
+    expect(within(corpo()[0]).getByText(CH('2'))).toBeInTheDocument()
+    expect(within(corpo()[0]).getByText('sem PDF')).toBeInTheDocument()
   })
 
   test('filtro de texto por chassi', async () => {
