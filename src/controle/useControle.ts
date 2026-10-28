@@ -37,20 +37,29 @@ export function useControle(): Controle {
     dispatch({ type: 'alterada', base, importacao })
   }, [])
 
-  // Gravação automática quando há arquivo aberto.
+  // Gravação automática quando há arquivo aberto, uma por vez. Alterações feitas durante uma gravação deixam o
+  // estado em 'pendente' (a revisão mudou) e são gravadas juntas assim que a atual termina.
+  const gravandoRef = useRef(false)
   useEffect(() => {
-    if (!state.handle || !state.base || state.salvamento !== 'pendente') return
+    if (!state.handle || !state.base || state.salvamento !== 'pendente' || gravandoRef.current) return
     const { handle, base, revisao } = state
+    gravandoRef.current = true
     dispatch({ type: 'salvando' })
     gravarArquivo(handle, base).then(
-      () => dispatch({ type: 'salvou', revisao }),
-      (e: unknown) => dispatch({ type: 'falhouSalvar', mensagem: e instanceof Error ? e.message : 'Não foi possível salvar o arquivo' }),
+      () => {
+        gravandoRef.current = false
+        dispatch({ type: 'salvou', revisao })
+      },
+      (e: unknown) => {
+        gravandoRef.current = false
+        dispatch({ type: 'falhouSalvar', mensagem: e instanceof Error ? e.message : 'Não foi possível salvar o arquivo' })
+      },
     )
   }, [state])
 
-  // Avisa antes de fechar a aba com alterações não salvas.
+  // Avisa antes de fechar a aba com alterações não salvas ou ainda sendo gravadas.
   useEffect(() => {
-    if (state.salvamento !== 'pendente' && state.salvamento !== 'erro') return
+    if (state.salvamento === 'salvo') return
     const aviso = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', aviso)
     return () => window.removeEventListener('beforeunload', aviso)
@@ -116,7 +125,7 @@ export function useControle(): Controle {
           return
         }
         if (!baseRef.current) return
-        const { base, resumo } = importarNcc(baseRef.current, result.rows, file.name, new Date())
+        const { base, resumo } = importarNcc(baseRef.current, result.rows, file.name, new Date(), result.warnings)
         alterar(base, { tipo: 'ncc', arquivo: file.name, resumo })
       }),
     )

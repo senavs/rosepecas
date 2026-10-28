@@ -39,4 +39,6 @@ test('chaves', () => {
 test('semAcento', () => {
   expect(semAcento('Número NF')).toBe('numero nf')
   expect(semAcento('  JOÃO ')).toBe('joao')
+  expect(semAcento('Número\n NF')).toBe('numero nf')
+  expect(semAcento('Número  NF')).toBe('numero nf')
 })

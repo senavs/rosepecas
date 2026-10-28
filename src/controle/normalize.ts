@@ -36,7 +36,7 @@ export function ajusteKey(alvo: AlvoAjuste): string {
   return alvo.tipo === 'carro' ? `carro:${alvo.nf}` : `linha:${linhaKey(alvo.ncc, alvo.nf)}`
 }
 
-/** Minúsculas e sem diacríticos, para busca e comparação de cabeçalhos. */
+/** Minúsculas, sem diacríticos e com espaços (inclusive quebras de linha e NBSP) unificados, para busca e cabeçalhos. */
 export function semAcento(s: string): string {
-  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
+  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\s+/g, ' ').toLowerCase().trim()
 }

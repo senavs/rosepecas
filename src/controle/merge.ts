@@ -82,10 +82,20 @@ function paraLinha(r: NccRow): NccLinha {
   }
 }
 
-export function importarNcc(base: Base, rows: NccRow[], arquivo: string, agora: Date): { base: Base; resumo: Resumo } {
+/** `avisos`: linhas que o leitor de PDF não reconheceu; entram nos ignorados do resumo. */
+export function importarNcc(
+  base: Base,
+  rows: NccRow[],
+  arquivo: string,
+  agora: Date,
+  avisos: string[] = [],
+): { base: Base; resumo: Resumo } {
   const linhas = rows.map(paraLinha)
   const validas = linhas.filter((l) => l.ncc && l.nf)
-  const ignorados = linhas.filter((l) => !(l.ncc && l.nf)).map((l) => `NF "${l.nf}" sem número de NCC ou NF`)
+  const ignorados = [
+    ...avisos.map((a) => `Linha não reconhecida: ${a}`),
+    ...linhas.filter((l) => !(l.ncc && l.nf)).map((l) => `NF "${l.nf}" sem número de NCC ou NF`),
+  ]
   const { tabela, contagem } = upsertTodos(base.ncc, validas, (l) => linhaKey(l.ncc, l.nf))
   const resumo = { ...contagem, ignorados }
   return { base: registrar({ ...base, ncc: tabela }, 'ncc', arquivo, agora, resumo), resumo }

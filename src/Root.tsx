@@ -38,9 +38,11 @@ export default function Root() {
           ))}
         </div>
       </nav>
-      {secao === 'consolidador' ? (
+      {/* As duas seções ficam montadas: trocar de aba não pode descartar a base aberta nem os PDFs do consolidador. */}
+      <div hidden={secao !== 'consolidador'}>
         <App />
-      ) : (
+      </div>
+      <div hidden={secao !== 'controle'}>
         <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
           <header>
             <h1 className="text-2xl font-bold tracking-tight sm:text-[1.75rem]">Controle de NCC</h1>
@@ -51,7 +53,7 @@ export default function Root() {
           </header>
           <ControlePage />
         </div>
-      )}
+      </div>
     </>
   )
 }
