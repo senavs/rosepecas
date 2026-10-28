@@ -111,3 +111,98 @@ describe('primeiros passos', () => {
     expect(resumo.getByText('1 linha ignorada')).toBeInTheDocument()
   })
 })
+
+describe('tela principal', () => {
+  const CH = (nf: string) => `TESTE000000000${nf}`
+  const linha = (ncc: string, nf: string, cod: string) => ({
+    ncc, nf, cod, data: '2026-05-08', cliente: 'CLIENTE TESTE', chassi: CH(nf), valorNf: 1000, comissaoBruta: 10, impostoRenda: 0, comissaoLiquida: 10,
+  })
+  const paga = (ncc: string, nf: string, conc: string) => ({ ncc, nf, conc, dataRecebimento: '2026-05-18' })
+  const BASE: Base = {
+    ...baseVazia(),
+    faturamento: { '168707': fat('168707'), '2': fat('2', { data: '2026-03-01' }), '3': fat('3', { data: '2026-01-01' }) },
+    ncc: {
+      '808285|168707': linha('808285', '168707', 'T68'),
+      '808284|168707': linha('808284', '168707', 'T48'),
+      '900001|2': linha('900001', '2', 'T68'),
+      '777|999': linha('777', '999', 'T08'),
+    },
+    pagas: { '808285|168707': paga('808285', '168707', 'T68'), '900001|2': paga('900001', '2', 'T68') },
+  }
+  const corpo = () => screen.getAllByRole('row').filter((r) => r.closest('tbody'))
+  const contadores = () => within(screen.getByRole('group', { name: /contadores/i }))
+
+  beforeEach(() => {
+    controle = mockControle({ base: BASE })
+  })
+
+  test('contadores mostram 1 Parcialmente pago, 1 Pago, 1 Sem NCC', () => {
+    render(<ControlePage />)
+    expect(contadores().getByRole('button', { name: /parcialmente pago\s*1/i })).toBeInTheDocument()
+    expect(contadores().getByRole('button', { name: /^pago\s*1/i })).toBeInTheDocument()
+    expect(contadores().getByRole('button', { name: /sem ncc\s*1/i })).toBeInTheDocument()
+  })
+
+  test('carro parcial mostra Faltam: 808284 (T48)', () => {
+    render(<ControlePage />)
+    expect(screen.getByText('Faltam: 808284 (T48)')).toBeInTheDocument()
+  })
+
+  test('clicar no contador Pago filtra a tabela para 1 linha', async () => {
+    render(<ControlePage />)
+    expect(corpo()).toHaveLength(3)
+    await userEvent.click(contadores().getByRole('button', { name: /^pago/i }))
+    expect(corpo()).toHaveLength(1)
+    expect(within(corpo()[0]).getByText(CH('2'))).toBeInTheDocument()
+  })
+
+  test('filtro de texto por chassi', async () => {
+    render(<ControlePage />)
+    await userEvent.type(screen.getByLabelText(/chassi, nf ou cliente/i), 'teste0000000003')
+    expect(corpo()).toHaveLength(1)
+  })
+
+  test('aba Órfãos lista o órfão com motivo', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('tab', { name: /órfãos \(1\)/i }))
+    expect(screen.getByText('Sem faturamento carregado')).toBeInTheDocument()
+    expect(screen.getByText('777')).toBeInTheDocument()
+  })
+
+  test('Marcar como pago no menu da NCC chama ajustar com alvo linha', async () => {
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar NCC 808284' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Marcar como pago' }))
+    expect(controle.ajustar).toHaveBeenCalledWith(
+      expect.objectContaining({ alvo: { tipo: 'linha', ncc: '808284', nf: '168707' }, status: 'pago', obs: '' }),
+    )
+  })
+
+  test('Desfazer ajuste aparece quando há ajuste e chama desfazerAjuste', async () => {
+    const alvo = { tipo: 'carro' as const, nf: '3' }
+    controle = mockControle({
+      base: { ...BASE, ajustes: { 'carro:3': { alvo, status: 'pago', em: '2026-10-28T12:00:00.000Z', obs: 'pago em dinheiro' } } },
+    })
+    render(<ControlePage />)
+    expect(screen.getAllByText('manual').length).toBeGreaterThan(0)
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar carro NF 3' }))
+    expect(screen.getByText('“pago em dinheiro”')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Desfazer ajuste' }))
+    expect(controle.desfazerAjuste).toHaveBeenCalledWith(alvo)
+  })
+
+  test('erro ao salvar mostra alerta e Tentar de novo', async () => {
+    controle = mockControle({ base: BASE, salvamento: 'erro', erroSalvar: 'Sem permissão para gravar no arquivo' })
+    render(<ControlePage />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Sem permissão para gravar no arquivo')
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(controle.tentarSalvarDeNovo).toHaveBeenCalled()
+  })
+
+  test('soltar planilha em Adicionar faturamento chama importarFaturamentoArquivo', async () => {
+    render(<ControlePage />)
+    const f = xlsx('fat-out.xlsx')
+    await userEvent.upload(screen.getByLabelText(/adicionar faturamento/i), f)
+    expect(controle.importarFaturamentoArquivo).toHaveBeenCalledWith(f)
+  })
+})
