@@ -158,8 +158,13 @@ describe('tela principal', () => {
 
   test('filtro de pagas sem PDF da NCC mostra só os carros com pagamento cujo PDF não foi enviado', async () => {
     render(<ControlePage />)
-    const caixa = screen.getByRole('checkbox', { name: /pagas sem pdf da ncc \(1\)/i })
-    await userEvent.click(caixa)
+    expect(screen.queryByRole('checkbox', { name: /sem pdf/i })).not.toBeInTheDocument()
+    const cards = contadores().getAllByRole('button').map((b) => b.getAttribute('aria-label'))
+    expect(cards).toHaveLength(6)
+    expect(cards.indexOf('Pagas sem PDF da NCC 1')).toBe(cards.indexOf('Pago 1') + 1)
+    const card = contadores().getByRole('button', { name: 'Pagas sem PDF da NCC 1' })
+    await userEvent.click(card)
+    expect(card).toHaveAttribute('aria-pressed', 'true')
     expect(corpo()).toHaveLength(1)
     expect(within(corpo()[0]).getByText(CH('2'))).toBeInTheDocument()
     expect(within(corpo()[0]).getByText('sem PDF')).toBeInTheDocument()
