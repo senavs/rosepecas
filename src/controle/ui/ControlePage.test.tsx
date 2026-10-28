@@ -245,7 +245,7 @@ describe('tela principal', () => {
     expect(screen.queryByRole('button', { name: /faturamento\s*3 carros/i })).not.toBeInTheDocument()
   })
 
-  test('Faturamento abre a janela com a área de upload e o histórico; soltar chama importarFaturamentoArquivo', async () => {
+  test('Faturamento abre a janela só com a área de upload; soltar chama importarFaturamentoArquivo', async () => {
     controle = mockControle({
       base: {
         ...BASE,
@@ -255,10 +255,32 @@ describe('tela principal', () => {
     render(<ControlePage />)
     await userEvent.click(screen.getByRole('button', { name: /faturamento\s*3 carros/i }))
     const janela = within(screen.getByRole('dialog', { name: 'Adicionar faturamento' }))
-    expect(janela.getByText('fat-jan.xlsx')).toBeInTheDocument()
+    expect(janela.queryByText('fat-jan.xlsx')).not.toBeInTheDocument()
+    expect(janela.queryByRole('list')).not.toBeInTheDocument()
     const f = xlsx('fat-out.xlsx')
     await userEvent.upload(janela.getByLabelText(/clique ou solte/i), f)
     expect(controle.importarFaturamentoArquivo).toHaveBeenCalledWith(f)
+  })
+
+  test('a janela mostra só uma linha com o resultado do último envio daquele tipo', async () => {
+    controle = mockControle({
+      base: BASE,
+      importacoes: [
+        { tipo: 'pagas', arquivo: 'pagas-ruim.xlsx', erro: 'Coluna "NF" não encontrada' },
+        { tipo: 'faturamento', arquivo: 'fat-2.xlsx', resumo: { novos: 2, atualizados: 1, inalterados: 5, ignorados: ['Linha 9: sem NF'] } },
+        { tipo: 'faturamento', arquivo: 'fat-1.xlsx', resumo: { novos: 7, atualizados: 0, inalterados: 0, ignorados: [] } },
+      ],
+    })
+    render(<ControlePage />)
+    await userEvent.click(screen.getByRole('button', { name: /faturamento\s*3 carros/i }))
+    const janela = screen.getByRole('dialog', { name: 'Adicionar faturamento' })
+    expect(within(janela).getByRole('status')).toHaveTextContent('fat-2.xlsx: 2 novos, 1 atualizado, 5 inalterados, 1 linha ignorada')
+    expect(within(janela).queryByText(/fat-1\.xlsx/)).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await userEvent.click(screen.getByRole('button', { name: /ncc pagas/i }))
+    expect(within(screen.getByRole('dialog', { name: 'Adicionar NCC pagas' })).getByRole('status')).toHaveTextContent(
+      'pagas-ruim.xlsx: Coluna "NF" não encontrada',
+    )
   })
 
   test('PDFs de NCC abre a janela que aceita vários arquivos', async () => {
